@@ -1,0 +1,14 @@
+# avaivable values: icmp, tcp, udp
+Protocol = "icmp"
+# Port
+Port = 443
+# Times of tests per IP
+Count = 3
+# ms
+Timeout = 500
+# workers
+Workers = 1
+# Cloudflare IPs API
+CloudflareAPI = "https://api.cloudflare.com/client/v4/ips"
+# Cloudflare API token
+CloudflareToken = ""
