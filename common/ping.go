@@ -95,7 +95,7 @@ func pingIcmp(destination string, timeout time.Duration) (err error) {
 
 // pingTcp performs a straightforward connection attempt on a destination ip:port and returns
 // an error if the attempt failed
-func pingTcp(destination string, destinationPort float64, timeout time.Duration) (err error) {
+func pingTcp(destination string, destinationPort uint16, timeout time.Duration) (err error) {
 	conn, err := net.DialTimeout("tcp",
 		fmt.Sprintf("%s:%d", destination, int(destinationPort)), timeout)
 	defer func(conn net.Conn) {
@@ -121,7 +121,7 @@ func pingTcp(destination string, destinationPort float64, timeout time.Duration)
 // Because UDP does not reply to connection requests, a lack of response may indicate that the
 // port is open, or that the packet got dropped. We chose to be optimistic and treat lack of
 // response (connection timeout) as an open port.
-func pingUdp(destination string, destinationPort float64, timeout time.Duration) (err error) {
+func pingUdp(destination string, destinationPort uint16, timeout time.Duration) (err error) {
 	c, err := net.Dial("udp",
 		fmt.Sprintf("%s:%d", destination, int(destinationPort)))
 	if err != nil {

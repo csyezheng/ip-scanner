@@ -1,14 +1,35 @@
+[General]
+Debug = true
+# workers
+Workers = 100
+Domain = "cloudflare"
+
+[Ping]
 # avaivable values: icmp, tcp, udp
 Protocol = "icmp"
-# Port
+# Port for tcp and udp, icmp will ignore port
 Port = 443
 # Times of tests per IP
 Count = 3
-# ms
+# Millisecond
 Timeout = 500
-# workers
-Workers = 1
-# Cloudflare IPs API
-CloudflareAPI = "https://api.cloudflare.com/client/v4/ips"
-# Cloudflare API token
-CloudflareToken = ""
+
+[HTTP]
+# Standard HTTPS ports are 443 and 8443.
+Port = 443
+# Millisecond
+Timeout = 2000
+
+[Domains]
+
+[Domains.Cloudflare]
+IPRangesFile = "./data/cloudflare.json"
+IPOutputFile = "./data/cloudflare.txt"
+WithIPv6 = false
+HttpsURL = "https://yezheng.pages.dev"
+
+[Domains.GoogleTranslate]
+IPRangesFile = "./data/goog.json"
+IPOutputFile = "./data/goog.txt"
+WithIPv6 = false
+HttpsURL = "https://translate.google.com"

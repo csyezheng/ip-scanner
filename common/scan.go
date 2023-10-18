@@ -2,42 +2,34 @@ package common
 
 import (
 	"fmt"
-	"log"
+	"log/slog"
 	"math"
+	"sort"
 	"sync"
 	"time"
 )
 
-type TestRecord struct {
-	ResolvedHost string  `json:"resolvedhost"` // Information about the ip:port being pinged
-	Protocol     string  `json:"protocol"`     // icmp, tcp, udp
-	Latency      float64 `json:"latencies"`    // response latency in milliseconds: 9999999 indicates timeout, -1 indicates unreachable, 0 general error.
-	Success      bool    `json:"Success"`      // ping success or failed
-}
-
-type TestRecordArray []TestRecord
-
-func testOneDetail(destination string, destinationPort float64, config Config, record *TestRecord) bool {
-	record.ResolvedHost = destination
-	record.Protocol = config.Protocol
-	if config.Protocol == "udp" || config.Protocol == "tcp" {
-		record.ResolvedHost += fmt.Sprintf(":%.0f", destinationPort)
+func testOneDetail(destination string, destinationPort uint16, config *Config, record *ScanRecord) bool {
+	record.IP = destination
+	record.Protocol = config.Ping.Protocol
+	if config.Ping.Protocol == "udp" || config.Ping.Protocol == "tcp" {
+		record.IP += fmt.Sprintf(":%d", destinationPort)
 	}
-	log.Printf("Start Ping: %s", record.ResolvedHost)
+	slog.Info("Start Ping:", "IP", record.IP)
 	successTimes := 0
 	var latencies []float64
-	for i := 0; i < config.Count; i += 1 {
+	for i := 0; i < config.Ping.Count; i += 1 {
 		var err error
 		// startTime for calculating the latency/RTT
 		startTime := time.Now()
 
-		switch config.Protocol {
+		switch config.Ping.Protocol {
 		case "icmp":
-			err = pingIcmp(destination, config.Timeout)
+			err = pingIcmp(destination, config.Ping.Timeout)
 		case "tcp":
-			err = pingTcp(destination, destinationPort, config.Timeout)
+			err = pingTcp(destination, destinationPort, config.Ping.Timeout)
 		case "udp":
-			err = pingUdp(destination, destinationPort, config.Timeout)
+			err = pingUdp(destination, destinationPort, config.Ping.Timeout)
 		}
 		//store the time elapsed before processing potential errors
 		latency := time.Since(startTime).Seconds() * 1000
@@ -58,7 +50,7 @@ func testOneDetail(destination string, destinationPort float64, config Config, r
 			// do nothing
 		case 9999999:
 			// For udp, a timeout indicates that the port *maybe* open.
-			if config.Protocol == "udp" {
+			if config.Ping.Protocol == "udp" {
 				successTimes += 1
 			}
 		default:
@@ -73,32 +65,55 @@ func testOneDetail(destination string, destinationPort float64, config Config, r
 		sum += latencies[i]
 	}
 	record.Latency = math.Round(sum / float64(len(latencies)))
-	if successTimes == config.Count {
-		record.Success = true
+	success := false
+	if successTimes == config.Ping.Count {
+		success = true
 	}
-	return record.Success
+	return success
 }
 
-func testOne(destination string, config Config, records *TestRecordArray, wg *sync.WaitGroup) {
-	defer wg.Done()
-	record := new(TestRecord)
-	destinationPort := config.Port
-	success := testOneDetail(destination, destinationPort, config, record)
-	if !success {
-		return
+func testOne(ch chan string, config *Config, scanResult *ScanResult, wg *sync.WaitGroup) {
+	for destination := range ch {
+		if destination == "" {
+			slog.Info("============== waitgroup done =================")
+			wg.Done()
+			break
+		}
+		record := new(ScanRecord)
+		destinationPort := config.Ping.Port
+		success := testOneDetail(destination, destinationPort, config, record)
+		if success {
+			success = HttpPing(destination, destinationPort, config)
+			if success {
+				scanResult.AddRecord(record)
+			}
+			scanResult.IncScanCounter()
+		}
 	}
-	*records = append(*records, *record)
 }
 
-func BatchTest(config Config) TestRecordArray {
-	records := new(TestRecordArray)
-	ips := GetIps(config)
-	log.Println(ips)
+func Start(config *Config) {
+	scanResult := new(ScanResult)
+	ips := GetIPs(config)
+	workers := config.General.Workers
+	ch := make(chan string, len(ips))
 	var wg sync.WaitGroup
-	for _, ip := range ips {
+	for i := 0; i < workers; i++ {
 		wg.Add(1)
-		go testOne(ip, config, records, &wg)
+		go testOne(ch, config, scanResult, &wg)
+	}
+	for _, destination := range ips {
+		ch <- destination
+	}
+	for i := 0; i < workers; i++ {
+		ch <- ""
 	}
 	wg.Wait()
-	return *records
+	close(ch)
+	scanRecords := scanResult.scanRecords
+	sort.Slice(scanRecords, func(i, j int) bool {
+		return scanRecords[i].Latency < scanRecords[j].Latency
+	})
+	writeToFile(scanRecords, config)
+	printResult(scanRecords)
 }
