@@ -2,14 +2,29 @@ package common
 
 import (
 	"bufio"
-	"github.com/csyezheng/ip-scanner/domains"
+	"github.com/csyezheng/ip-scanner/usedfor"
 	"log/slog"
 	"net/netip"
 	"os"
+	"sync"
 )
 
-func CIDRToIPs(cidrAddress string) []string {
-	var ips []string
+type IPArray struct {
+	IPs      []string
+	ipsMutex sync.Mutex
+}
+
+func (arr *IPArray) AddIP(ip string) {
+	arr.ipsMutex.Lock()
+	if arr.IPs == nil {
+		arr.IPs = make([]string, 0)
+	}
+	arr.IPs = append(arr.IPs, ip)
+	arr.ipsMutex.Unlock()
+}
+
+func CIDRToIPs(cidrAddress string, iparr *IPArray, wg *sync.WaitGroup) {
+	defer wg.Done()
 	p, err := netip.ParsePrefix(cidrAddress)
 	if err != nil {
 		slog.Error("invalid cidr:", slog.String("CIDR", cidrAddress), slog.Any("Error", err))
@@ -20,51 +35,54 @@ func CIDRToIPs(cidrAddress string) []string {
 		if !p.Contains(addr) {
 			break
 		}
-		slog.Debug(addr.String())
-		ips = append(ips, addr.String())
+		iparr.AddIP(addr.String())
 		addr = addr.Next()
 	}
-	return ips
 }
 
 func GetIPs(config *Config) []string {
-	var ips []string
-	domain := config.General.Domain
-	if domain == "cloudflare" {
-		var cloudflare domains.CloudFlare
-		inputFile := config.Domains.Cloudflare.IPRangesFile
-		withIPv6 := config.Domains.Cloudflare.WithIPv6
-		err := cloudflare.LoadCIDRs(inputFile, withIPv6)
+	var iparr IPArray
+	var cidrs []string
+	usedFor := config.General.UsedFor
+	if usedFor == "Cloudflare" {
+		var cloudflare usedfor.CloudFlare
+		customIPRangesFile := config.UsedFor.Cloudflare.CustomIPRangesFile
+		ipRangesFile := config.UsedFor.Cloudflare.IPRangesFile
+		withIPv6 := config.UsedFor.Cloudflare.WithIPv6
+		err := cloudflare.LoadCIDRs(customIPRangesFile, ipRangesFile, withIPv6)
 		if err != nil {
 			slog.Error("Loading CIDRs failed:", err)
 		}
-		for _, cidrAddress := range cloudflare.CIDRs {
-			ipList := CIDRToIPs(cidrAddress)
-			ips = append(ips, ipList...)
-		}
-	} else if domain == "google" {
-		var google domains.Google
-		inputFile := config.Domains.GoogleTranslate.IPRangesFile
-		withIPv6 := config.Domains.Cloudflare.WithIPv6
-		err := google.LoadCIDRs(inputFile, withIPv6)
+		cidrs = cloudflare.CIDRs
+
+	} else if usedFor == "GoogleTranslate" {
+		var googleTranslate usedfor.GoogleTranslate
+		customIPRangesFile := config.UsedFor.GoogleTranslate.CustomIPRangesFile
+		ipRangesFile := config.UsedFor.GoogleTranslate.IPRangesFile
+		withIPv6 := config.UsedFor.Cloudflare.WithIPv6
+		err := googleTranslate.LoadCIDRs(customIPRangesFile, ipRangesFile, withIPv6)
 		if err != nil {
 			slog.Error("Loading CIDRs failed:", err)
 		}
-		for _, cidrAddress := range google.CIDRs {
-			ipList := CIDRToIPs(cidrAddress)
-			ips = append(ips, ipList...)
-		}
+		cidrs = googleTranslate.CIDRs
 	}
-	return ips
+	var wg sync.WaitGroup
+	for _, cidrAddress := range cidrs {
+		wg.Add(1)
+		go CIDRToIPs(cidrAddress, &iparr, &wg)
+	}
+	wg.Wait()
+	slog.Info("Load IPs:", "Count", len(iparr.IPs))
+	return iparr.IPs
 }
 
 func writeToFile(scanRecords ScanRecordArray, config *Config) {
-	domain := config.General.Domain
+	usedFor := config.General.UsedFor
 	var outputFile string
-	if domain == "cloudflare" {
-		outputFile = config.Domains.Cloudflare.IPOutputFile
-	} else if domain == "google" {
-		outputFile = config.Domains.Cloudflare.IPOutputFile
+	if usedFor == "Cloudflare" {
+		outputFile = config.UsedFor.Cloudflare.IPOutputFile
+	} else if usedFor == "GoogleTranslate" {
+		outputFile = config.UsedFor.GoogleTranslate.IPOutputFile
 	}
 	f, err := os.Create(outputFile)
 	if err != nil {
@@ -72,7 +90,7 @@ func writeToFile(scanRecords ScanRecordArray, config *Config) {
 	}
 	w := bufio.NewWriter(f)
 	for _, record := range scanRecords {
-		w.WriteString(record.IP)
+		w.WriteString(record.IP + "\n")
 	}
 	w.Flush()
 }
@@ -85,7 +103,8 @@ func printResult(scanRecords ScanRecordArray) {
 	for i, record := range scanRecords {
 		if i < 10 {
 			slog.Info("Scan Result:", slog.String("IP", record.IP),
-				slog.String("Protocal", record.Protocol), slog.Float64("Latency", record.Latency))
+				slog.String("Protocal", record.Protocol), slog.Float64("PingRTT", record.PingRTT),
+				slog.Float64("HttpRTT", record.HttpRTT))
 		}
 	}
 }

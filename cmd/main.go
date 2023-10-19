@@ -22,7 +22,8 @@ func isFlagPassed(name string) bool {
 
 func main() {
 	configFilePath := flag.String("config", "./configs/config.toml", "Config file, toml format")
-	domain := flag.String("domain", "cloudflare", "domain: cloudflare or google")
+	usedfor := flag.String("usedfor", "GoogleTranslate",
+		"GoogleTranslate or Cloudflare")
 	flag.Parse()
 	viper.SetConfigType("toml")
 	viper.SetConfigFile(*configFilePath)
@@ -36,7 +37,7 @@ func main() {
 		panic(err)
 	}
 	if isFlagPassed("domain") {
-		config.General.Domain = *domain
+		config.General.UsedFor = *usedfor
 	}
 
 	config.Ping.Timeout = config.Ping.Timeout * time.Millisecond

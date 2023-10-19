@@ -19,3 +19,7 @@
 
 # Go workspace file
 go.work
+
+# output file
+data/output_google_translate.txt
+data/cloudflare_custom_ip_ranges.txt

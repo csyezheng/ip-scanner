@@ -7,9 +7,10 @@ import (
 )
 
 type ScanRecord struct {
-	IP       string  `json:"ip"`        // ip:port
-	Protocol string  `json:"protocol"`  // icmp, tcp, udp
-	Latency  float64 `json:"latencies"` // response latency in milliseconds: 9999999 indicates timeout, -1 indicates unreachable, 0 general error.
+	IP       string  `json:"ip"`       // ip:port
+	Protocol string  `json:"protocol"` // icmp, tcp, udp
+	PingRTT  float64 `json:"pingrtt"`  // response latency in milliseconds: 9999999 indicates timeout, -1 indicates unreachable, 0 general error.
+	HttpRTT  float64 `json:"httprtt"`  // response latency in milliseconds: 9999999 indicates timeout, -1 indicates unreachable, 0 general error.
 }
 
 type ScanRecordArray []*ScanRecord
@@ -18,7 +19,6 @@ type ScanResult struct {
 	scanned     int32
 	scanRecords ScanRecordArray
 	recordMutex sync.Mutex
-	hostsMutex  sync.Mutex
 }
 
 func (records *ScanRecordArray) Len() int {
@@ -26,7 +26,7 @@ func (records *ScanRecordArray) Len() int {
 }
 
 func (records *ScanRecordArray) Less(i, j int) bool {
-	return (*records)[i].Latency < (*records)[j].Latency
+	return (*records)[i].HttpRTT < (*records)[j].HttpRTT
 }
 
 func (records *ScanRecordArray) Swap(i, j int) {
@@ -42,12 +42,13 @@ func (result *ScanResult) AddRecord(record *ScanRecord) {
 	}
 	result.scanRecords = append(result.scanRecords, record)
 	result.recordMutex.Unlock()
-	slog.Info("Found an IP:", slog.String("IP", record.IP), slog.Float64("Latency", record.Latency))
+	slog.Info("Found an IP:", slog.String("IP", record.IP), slog.Float64("PingRTT", record.PingRTT),
+		slog.Float64("HttpRTT", record.HttpRTT))
 }
 
 func (result *ScanResult) IncScanCounter() {
 	atomic.AddInt32(&(result.scanned), 1)
 	if result.scanned%1000 == 0 {
-		slog.Info("Scanned:", result.scanned)
+		slog.Info("Progress:", "Scanned", result.scanned)
 	}
 }

@@ -7,7 +7,7 @@ This script is used to find the fastest IP for a given domain name.
 
   To better use cloudflare pages and cloudflare workers, find the fastest IP.
 
-* GoogleTransle 
+* GoogleTranslate 
 
   To reduce the impact of these disturbances, find clean IPs (IPs that are not disturbed).
 
@@ -20,8 +20,8 @@ Options:
 ```
 -config string
     Config file, toml format (default "./configs/config.toml")
--domain string
-    domain: cloudflare or google (default "cloudflare")
+-usedfor string
+    usedfor: GoogleTranslate or Cloudflare (default "GoogleTranslate")
 ```
 
 ## Configuration
@@ -29,8 +29,9 @@ Options:
 [General]
 Debug = true
 # workers
-Workers = 100
-Domain = "cloudflare"
+Workers = 300
+# GoogleTranslate or Cloudflare
+UsedFor = "GoogleTranslate"
 
 [Ping]
 # avaivable values: icmp, tcp, udp
@@ -41,24 +42,32 @@ Port = 443
 Count = 3
 # Millisecond
 Timeout = 500
+# true: it's legal if it succeeds every time. false: it's legal if it has one succeeds
+all = false
 
 [HTTP]
 # Standard HTTPS ports are 443 and 8443.
 Port = 443
+# Times of tests per IP
+Count = 3
 # Millisecond
 Timeout = 2000
+# true: it's legal if it succeeds every time. false: it's legal if it has one succeeds
+all = false
 
-[Domains]
+[UsedFor]
 
-[Domains.Cloudflare]
+[UsedFor.Cloudflare]
 IPRangesFile = "./data/cloudflare.json"
-IPOutputFile = "./data/cloudflare.txt"
+CustomIPRangesFile = "./data/cloudflare_custom_ip_ranges.txt"
+IPOutputFile = "./data/output_cloudflare.txt"
 WithIPv6 = false
 HttpsURL = "https://yezheng.pages.dev"
 
-[Domains.GoogleTranslate]
+[UsedFor.GoogleTranslate]
 IPRangesFile = "./data/goog.json"
-IPOutputFile = "./data/goog.txt"
+CustomIPRangesFile = "./data/google_translate_custom_ip_ranges.txt"
+IPOutputFile = "./data/output_google_translate.txt"
 WithIPv6 = false
 HttpsURL = "https://translate.google.com"
 ```
