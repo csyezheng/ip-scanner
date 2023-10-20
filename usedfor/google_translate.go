@@ -1,11 +1,11 @@
 package usedfor
 
 import (
+	"bufio"
 	"encoding/json"
 	"fmt"
 	"log/slog"
 	"os"
-	"strings"
 )
 
 type GoogleTranslate struct {
@@ -25,9 +25,19 @@ type response struct {
 func (gg *GoogleTranslate) LoadCIDRs(customIPRangesFile string, ipRangesFile string, withIPv6 bool) error {
 	_, err := os.Stat(customIPRangesFile)
 	if err == nil {
-		bytesRead, _ := os.ReadFile(customIPRangesFile)
-		fileContent := string(bytesRead)
-		lines := strings.Split(fileContent, "\n")
+		f, err := os.Open(customIPRangesFile)
+		if err != nil {
+			slog.Error("Could not open custom ip address ranges file:", customIPRangesFile)
+		}
+		defer f.Close()
+		var lines []string
+		scanner := bufio.NewScanner(f)
+		for scanner.Scan() {
+			lines = append(lines, scanner.Text())
+		}
+		if err := scanner.Err(); err != nil {
+			return err
+		}
 		gg.CIDRs = append(gg.CIDRs, lines...)
 		return nil
 	} else if os.IsNotExist(err) {

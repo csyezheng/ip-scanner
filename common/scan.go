@@ -123,11 +123,11 @@ func testOne(ch chan string, config *Config, scanResult *ScanResult, wg *sync.Wa
 			if success {
 				scanResult.AddRecord(record)
 			} else {
-				slog.Info(fmt.Sprintf("IP %s http test timeout", destination))
+				slog.Debug(fmt.Sprintf("IP %s http test timeout", destination))
 			}
 			scanResult.IncScanCounter()
 		} else {
-			slog.Info(fmt.Sprintf("IP %s ping test timeout", destination))
+			slog.Debug(fmt.Sprintf("IP %s ping test timeout", destination))
 		}
 	}
 }
@@ -135,7 +135,6 @@ func testOne(ch chan string, config *Config, scanResult *ScanResult, wg *sync.Wa
 func Start(config *Config) {
 	scanResult := new(ScanResult)
 	ips := GetIPs(config)
-	slog.Info("count:", len(ips))
 	workers := config.General.Workers
 	ch := make(chan string, len(ips))
 	var wg sync.WaitGroup

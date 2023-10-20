@@ -1,5 +1,5 @@
 [General]
-Debug = true
+Debug = false
 # workers
 Workers = 300
 # GoogleTranslate or Cloudflare
