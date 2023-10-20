@@ -115,6 +115,11 @@ func reqOneIP(destination string, destinationPort uint16, config *Config, record
 func testOne(ch chan string, config *Config, scanResult *ScanResult, wg *sync.WaitGroup) {
 	defer wg.Done()
 	for destination := range ch {
+		if (config.General.ScannedLimit > 0 && config.General.ScannedLimit < scanResult.Scanned()) ||
+			(config.General.FoundLimit > 0 && config.General.FoundLimit < scanResult.Found()) {
+			slog.Debug("The limit number of scans from configuration file has been reached, stop scanning!")
+			return
+		}
 		record := new(ScanRecord)
 		destinationPort := config.Ping.Port
 		success := pingOneIP(destination, destinationPort, config, record)
@@ -153,5 +158,5 @@ func Start(config *Config) {
 		return scanRecords[i].HttpRTT < scanRecords[j].HttpRTT
 	})
 	writeToFile(scanRecords, config)
-	printResult(scanRecords)
+	printResult(scanRecords, config)
 }

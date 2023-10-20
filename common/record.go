@@ -35,6 +35,18 @@ func (records *ScanRecordArray) Swap(i, j int) {
 	(*records)[j] = tmp
 }
 
+func (result *ScanResult) Scanned() int {
+	result.recordMutex.Lock()
+	defer result.recordMutex.Unlock()
+	return int(result.scanned)
+}
+
+func (result *ScanResult) Found() int {
+	result.recordMutex.Lock()
+	defer result.recordMutex.Unlock()
+	return len(result.scanRecords)
+}
+
 func (result *ScanResult) AddRecord(record *ScanRecord) {
 	result.recordMutex.Lock()
 	if result.scanRecords == nil {

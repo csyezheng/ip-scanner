@@ -4,9 +4,11 @@ import "time"
 
 type Config struct {
 	General struct {
-		Debug   bool
-		Workers int
-		UsedFor string
+		UsedFor      string
+		Debug        bool
+		Workers      int
+		ScannedLimit int
+		FoundLimit   int
 	}
 	Ping struct {
 		Protocol string

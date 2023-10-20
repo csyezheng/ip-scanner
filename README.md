@@ -27,11 +27,16 @@ Options:
 ## Configuration
 ```toml
 [General]
-Debug = true
-# workers
-Workers = 300
 # GoogleTranslate or Cloudflare
 UsedFor = "GoogleTranslate"
+# A boolean that turns on/off debug mode. true or false
+Debug = false
+# workers
+Workers = 300
+# Limit the maximum number of IPs scanned. No limit if it is less than or equal to 0.
+ScannedLimit = 0
+# Limit the maximum number of IPs found. No limit if it is less than or equal to 0.
+FoundLimit = 10
 
 [Ping]
 # avaivable values: icmp, tcp, udp
@@ -58,17 +63,27 @@ all = false
 [UsedFor]
 
 [UsedFor.Cloudflare]
+# All IP ranges of cloudflare
 IPRangesFile = "./data/cloudflare.json"
+# Customized IP ranges. If the file does not exist, will use IPRangesFile
 CustomIPRangesFile = "./data/cloudflare_custom_ip_ranges.txt"
+# Output the available IPs found
 IPOutputFile = "./data/output_cloudflare.txt"
+# A boolean that turns on/off scanning for IPv6. true or false.
 WithIPv6 = false
+# URL for testing HTTPS connection
 HttpsURL = "https://yezheng.pages.dev"
 
 [UsedFor.GoogleTranslate]
+# All IP ranges of google
 IPRangesFile = "./data/goog.json"
+# Customized IP ranges. If the file does not exist, will use IPRangesFile
 CustomIPRangesFile = "./data/google_translate_custom_ip_ranges.txt"
+# Output the available IPs found
 IPOutputFile = "./data/output_google_translate.txt"
+# # boolean that turns on/off scanning for IPv6. true or false.
 WithIPv6 = false
+# URL for testing HTTPS connection
 HttpsURL = "https://translate.google.com"
 ```
 
