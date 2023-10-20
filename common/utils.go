@@ -114,6 +114,7 @@ func printResult(scanRecords ScanRecordArray, config *Config) {
 	if len(head) > 10 {
 		head = head[:10]
 	}
+	fmt.Printf("%s\t%s\t%s\t%s\n", "IP", "Protocol", "PingRTT", "HttpRTT")
 	for _, record := range head {
 		fmt.Printf("%s\t%s\t%f\t%f\n", record.IP, record.Protocol, record.PingRTT, record.HttpRTT)
 	}
