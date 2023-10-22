@@ -44,17 +44,12 @@ func CIDRToIPs(cidrAddress string, iparr *IPArray, wg *sync.WaitGroup) {
 	}
 }
 
-func extractSiteConfig(config *Config, field string) reflect.Value {
-	sites := reflect.ValueOf(config.Sites)
-	site := sites.FieldByName(config.General.Site)
-	return site.FieldByName(field)
-}
-
 func loadCIDRs(config *Config) ([]string, error) {
 	var cidrs []string
-	customIPRangesFile := extractSiteConfig(config, "CustomIPRangesFile").String()
-	ipRangesFile := extractSiteConfig(config, "IPRangesFile").String()
-	withIPv6 := extractSiteConfig(config, "WithIPv6").Bool()
+	siteCfg := RetrieveSiteCfg(config)
+	customIPRangesFile := siteCfg.CustomIPRangesFile
+	ipRangesFile := siteCfg.IPRangesFile
+	withIPv6 := siteCfg.WithIPv6
 	targetFile := customIPRangesFile
 	_, err := os.Stat(targetFile)
 	if err == nil {
@@ -63,35 +58,25 @@ func loadCIDRs(config *Config) ([]string, error) {
 		slog.Warn("custom ip ranges file does not exist, use default ip ranges file instead!")
 		targetFile = ipRangesFile
 	} else {
-		slog.Warn("custom ip ranges file %s stat error: %v, use default ip ranges file instead!", customIPRangesFile, err)
+		slog.Warn("custom ip ranges file stat error: use default ip ranges file instead!", "error", err)
 		targetFile = ipRangesFile
 	}
-	_, err = os.Stat(targetFile)
-	if err == nil {
-		slog.Info("found default ip ranges file.")
-		f, err := os.Open(customIPRangesFile)
-		if err != nil {
-			slog.Error("Could not open custom ip address ranges file:", customIPRangesFile)
-			return cidrs, err
-		}
-		defer f.Close()
-		scanner := bufio.NewScanner(f)
-		for scanner.Scan() {
-			line := scanner.Text()
-			if !withIPv6 && !isIPv4(line) {
-				continue
-			}
-			cidrs = append(cidrs, scanner.Text())
-		}
-		if err := scanner.Err(); err != nil {
-			slog.Error("Could not load ip address ranges file:", customIPRangesFile)
-			return cidrs, err
-		}
-	} else if os.IsNotExist(err) {
-		slog.Error("default ip ranges file does not exist!")
+	f, err := os.Open(targetFile)
+	if err != nil {
+		slog.Error("Could not open ip address ranges:", "file", targetFile)
 		return cidrs, err
-	} else {
-		slog.Error("default ip ranges file %s stat error: %v", customIPRangesFile, err)
+	}
+	defer f.Close()
+	scanner := bufio.NewScanner(f)
+	for scanner.Scan() {
+		line := scanner.Text()
+		if !withIPv6 && !isIPv4(line) {
+			continue
+		}
+		cidrs = append(cidrs, scanner.Text())
+	}
+	if err := scanner.Err(); err != nil {
+		slog.Error("Could not load ip address ranges file:", targetFile)
 		return cidrs, err
 	}
 	return cidrs, err
@@ -114,14 +99,22 @@ func GetIPs(config *Config) []string {
 	return iparr.IPs
 }
 
-func writeToFile(scanRecords ScanRecordArray, config *Config) {
-	usedFor := config.General.Site
-	var outputFile string
-	if usedFor == "Cloudflare" {
-		outputFile = config.Sites.Cloudflare.IPOutputFile
-	} else if usedFor == "GoogleTranslate" {
-		outputFile = config.Sites.GoogleTranslate.IPOutputFile
+// RetrieveSiteCfg assumed that the site name must exist in the configuration file and no error handling required
+func RetrieveSiteCfg(config *Config) Site {
+	siteName := config.General.Site
+	sv := reflect.ValueOf(config.Sites)
+	sites := sv.Interface().([]Site)
+	for _, site := range sites {
+		if site.Name == siteName {
+			return site
+		}
 	}
+	return Site{}
+}
+
+func writeToFile(scanRecords ScanRecordArray, config *Config) {
+	siteCfg := RetrieveSiteCfg(config)
+	outputFile := siteCfg.IPOutputFile
 	f, err := os.Create(outputFile)
 	if err != nil {
 		slog.Error("Failed to create file", err)
@@ -152,14 +145,14 @@ func printResult(scanRecords ScanRecordArray, config *Config) {
 	for _, record := range head {
 		fmt.Printf("%s\t%s\t%f\t%f\n", record.IP, record.Protocol, record.PingRTT, record.HttpRTT)
 	}
-	if config.General.Site == "GoogleTranslate" {
-		fastestRecord := *scanRecords[0]
-		slog.Info("The fastest IP has been found:")
-		fmt.Printf("%v\t%s\n", fastestRecord.IP, "translate.googleapis.com")
-		fmt.Printf("%v\t%s\n", fastestRecord.IP, "translate.google.com")
-		if askForConfirmation() {
-			writeToHosts(fastestRecord.IP)
-		}
+	fastestRecord := *scanRecords[0]
+	slog.Info("The fastest IP has been found:")
+	siteCfg := RetrieveSiteCfg(config)
+	for _, domain := range siteCfg.Domains {
+		fmt.Printf("%v\t%s\n", fastestRecord.IP, domain)
+	}
+	if askForConfirmation() {
+		writeToHosts(fastestRecord.IP, siteCfg.Domains)
 	}
 }
 
@@ -178,8 +171,7 @@ func askForConfirmation() bool {
 	}
 }
 
-// writeToHosts: only use for Google Translate
-func writeToHosts(ip string) {
+func writeToHosts(ip string, domains []string) {
 	var hostsFile string
 	switch runtime.GOOS {
 	case "windows":
@@ -198,7 +190,7 @@ func writeToHosts(ip string) {
 		slog.Error("Backup hosts failed, please modify the hosts file yourself.", err)
 		return
 	}
-	err = modifyHosts(hostsFile, ip)
+	err = modifyHosts(hostsFile, ip, domains)
 	if err != nil {
 		slog.Error("Modify hosts failed, please modify the hosts file yourself.", err)
 		return
@@ -227,7 +219,7 @@ func Copy(srcPath, dstPath string) (err error) {
 }
 
 // modifyHosts: only use for Google Translate
-func modifyHosts(hostsFile string, ip string) error {
+func modifyHosts(hostsFile string, ip string, domains []string) error {
 	f, err := os.OpenFile(hostsFile, os.O_RDWR, 0644)
 	if err != nil {
 		return err
@@ -242,15 +234,16 @@ func modifyHosts(hostsFile string, ip string) error {
 	scanner := bufio.NewScanner(f)
 	for scanner.Scan() {
 		line := scanner.Text()
-		if strings.Contains(line, "translate.googleapis.com") ||
-			strings.Contains(line, "translate.google.com") {
+		if strContainSlice(line, domains) {
 			continue
 		}
 		builder.WriteString(line + lineSeparator)
 	}
-	builder.WriteString("")
-	builder.WriteString(fmt.Sprintf("%s\t%s", ip, "translate.googleapis.com") + lineSeparator)
-	builder.WriteString(fmt.Sprintf("%s\t%s", ip, "translate.google.com") + lineSeparator)
+	builder.WriteString(lineSeparator)
+	for _, domain := range domains {
+		line := fmt.Sprintf("%s\t%s", ip, domain) + lineSeparator
+		builder.WriteString(line)
+	}
 	err = f.Truncate(0)
 	if err != nil {
 		return err
@@ -264,4 +257,23 @@ func modifyHosts(hostsFile string, ip string) error {
 		return err
 	}
 	return nil
+}
+
+func AssertSiteName(config *Config) bool {
+	siteName := config.General.Site
+	for _, site := range config.Sites {
+		if site.Name == siteName {
+			return true
+		}
+	}
+	return false
+}
+
+func strContainSlice(s string, ls []string) bool {
+	for _, substr := range ls {
+		if strings.Contains(s, substr) {
+			return true
+		}
+	}
+	return false
 }

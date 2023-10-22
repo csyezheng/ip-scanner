@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/csyezheng/ip-scanner/common"
 	"github.com/spf13/viper"
+	"log"
 	"log/slog"
 	"os"
 	"time"
@@ -30,6 +31,10 @@ func Start(configFilePath string, siteFlag string) {
 		handler := slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug})
 		logger := slog.New(handler)
 		slog.SetDefault(logger)
+	}
+	if !common.AssertSiteName(&config) {
+		log.Printf("eror occur, site %s does not configured in the configuration file", config.General.Site)
+		os.Exit(1)
 	}
 	common.Run(&config)
 }

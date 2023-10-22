@@ -42,7 +42,8 @@ func reqHEAD(destination string, destinationPort uint16, config *Config) error {
 			return http.ErrUseLastResponse
 		},
 	}
-	url := extractSiteConfig(config, "HttpsURL").String()
+	siteCfg := RetrieveSiteCfg(config)
+	url := siteCfg.HttpsURL
 	req, err := http.NewRequest(http.MethodHead, url, nil)
 	if err != nil {
 		slog.Debug("http request:", slog.String("url", url), slog.Any("Error", err))

@@ -3,32 +3,79 @@
 This script is used to find the fastest IP for a given domain name.
 
 ## Use
-* Cloudflare
-
-  To better use cloudflare pages and cloudflare workers, find the fastest IP.
-
 * GoogleTranslate 
 
-  To reduce the impact of these disturbances, find clean IPs (IPs that are not disturbed).
+  Google has ended its Google Translate service in mainland China. In order to continue using Google's translation service, look for available IPs.
 
+* Cloudflare
 
-## Run
-```shell
-go run .\cmd\main.go
+  To better use Cloudflare pages and Cloudflare workers, find the fastest IP.
+
+## Quick start
+
+### Find the IP of the provisioned site
+
+Find available IPs for Google Translate:
+
 ```
+go run cmd/google_translate/main.go
+```
+
+Find the fastest IP for cloudflare:
+
+```
+go run cmd/cloudflare/main.go
+```
+
 Options:
 ```
 -config string
     Config file, toml format (default "./configs/config.toml")
--usedfor string
-    usedfor: GoogleTranslate or Cloudflare (default "GoogleTranslate")
+```
+
+### Fetch the latest IP ranges of provisioned site
+
+Fetch the latest IP ranges of Google Translate:
+
+```
+go run cmd/fetch_ip_ranges/main.go -site GoogleTranslate
+```
+
+Fetch the latest IP ranges of Cloudflare:
+
+```
+go run cmd/fetch_ip_ranges/main.go -site Cloudflare
+```
+
+Options:
+
+```
+-site string
+```
+
+### Find the IP of custom site
+
+Find available IPs for other websites, add configuration and run:
+
+```shell
+go run cmd/ip_scanner/main.go -site <site name>
+```
+
+Options:
+
+```
+-config string
+    Config file, toml format (default "./configs/config.toml")
+-site string
+    site: the site name configured in the configuration file
 ```
 
 ## Configuration
+
 ```toml
 [General]
 # GoogleTranslate or Cloudflare
-UsedFor = "GoogleTranslate"
+Site = "GoogleTranslate"
 # A boolean that turns on/off debug mode. true or false
 Debug = false
 # workers
@@ -60,31 +107,39 @@ Timeout = 2000
 # true: it's legal if it succeeds every time. false: it's legal if it has one succeeds
 all = false
 
-[UsedFor]
-
-[UsedFor.Cloudflare]
-# All IP ranges of cloudflare
-IPRangesFile = "./data/cloudflare.json"
-# Customized IP ranges. If the file does not exist, will use IPRangesFile
-CustomIPRangesFile = "./data/cloudflare_custom_ip_ranges.txt"
-# Output the available IPs found
-IPOutputFile = "./data/output_cloudflare.txt"
-# A boolean that turns on/off scanning for IPv6. true or false.
-WithIPv6 = false
-# URL for testing HTTPS connection
-HttpsURL = "https://yezheng.pages.dev"
-
-[UsedFor.GoogleTranslate]
+[[Sites]]
+Name = "GoogleTranslate"
+# The API to fetch the IP ranges
+IPRangesAPI = "https://www.gstatic.com/ipranges/goog.json"
 # All IP ranges of google
-IPRangesFile = "./data/goog.json"
+IPRangesFile = "./data/all_google_translate_ip_ranges.txt"
 # Customized IP ranges. If the file does not exist, will use IPRangesFile
-CustomIPRangesFile = "./data/google_translate_custom_ip_ranges.txt"
+CustomIPRangesFile = "./data/custom_google_translate_ip_ranges.txt"
 # Output the available IPs found
-IPOutputFile = "./data/output_google_translate.txt"
+IPOutputFile = "./data/output_google_translate_ips.txt"
 # # boolean that turns on/off scanning for IPv6. true or false.
 WithIPv6 = false
 # URL for testing HTTPS connection
 HttpsURL = "https://translate.google.com"
+# Domains for write into hosts file
+Domains = ["translate.google.com", "translate.googleapis.com"]
+
+[[Sites]]
+Name = "Cloudflare"
+# The API to fetch the IP ranges
+IPRangesAPI = "https://api.cloudflare.com/client/v4/ips"
+# All IP ranges of cloudflare
+IPRangesFile = "./data/all_cloudflare_ip_ranges.txt"
+# Customized IP ranges. If the file does not exist, will use IPRangesFile
+CustomIPRangesFile = "./data/custom_cloudflare_ip_ranges.txt"
+# Output the available IPs found
+IPOutputFile = "./data/output_cloudflare_ips.txt"
+# A boolean that turns on/off scanning for IPv6. true or false.
+WithIPv6 = false
+# URL for testing HTTPS connection
+HttpsURL = "https://yezheng.pages.dev"
+# Domains for write into hosts file
+Domains = ["yezheng.pages.dev"]
 ```
 
 ## IP address ranges

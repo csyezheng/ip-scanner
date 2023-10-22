@@ -3,6 +3,7 @@ package sites
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/csyezheng/ip-scanner/common"
 	"io"
 	"log/slog"
 	"net/http"
@@ -21,7 +22,10 @@ type cfResponse struct {
 	Messages []any `json:"messages"`
 }
 
-func FetchCFIPRanges(url string, dest string) error {
+func FetchCFIPRanges(config *common.Config) error {
+	site := common.RetrieveSiteCfg(config)
+	url := site.IPRangesAPI
+	dest := site.IPRangesFile
 	req, err := http.NewRequest("GET", url, nil)
 	req.Header.Add("Content-Type", "application/json")
 	client := &http.Client{}
@@ -54,7 +58,7 @@ func FetchCFIPRanges(url string, dest string) error {
 			return err
 		}
 	} else {
-		return fmt.Errorf("Fatch failed, cloudflare return: %v", res)
+		return fmt.Errorf("fetch failed, cloudflare return: %v", res)
 	}
 	slog.Info("fetch success, the latest IP segment has been saved in", "file", dest)
 	return nil

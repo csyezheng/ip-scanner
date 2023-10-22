@@ -32,9 +32,8 @@ Timeout = 2000
 # true: it's legal if it succeeds every time. false: it's legal if it has one succeeds
 all = false
 
-[Sites]
-
-[Sites.GoogleTranslate]
+[[Sites]]
+Name = "GoogleTranslate"
 # The API to fetch the IP ranges
 IPRangesAPI = "https://www.gstatic.com/ipranges/goog.json"
 # All IP ranges of google
@@ -47,8 +46,11 @@ IPOutputFile = "./data/output_google_translate_ips.txt"
 WithIPv6 = false
 # URL for testing HTTPS connection
 HttpsURL = "https://translate.google.com"
+# Domains for write into hosts file
+Domains = ["translate.google.com", "translate.googleapis.com"]
 
-[Sites.Cloudflare]
+[[Sites]]
+Name = "Cloudflare"
 # The API to fetch the IP ranges
 IPRangesAPI = "https://api.cloudflare.com/client/v4/ips"
 # All IP ranges of cloudflare
@@ -61,4 +63,5 @@ IPOutputFile = "./data/output_cloudflare_ips.txt"
 WithIPv6 = false
 # URL for testing HTTPS connection
 HttpsURL = "https://yezheng.pages.dev"
-
+# Domains for write into hosts file
+Domains = ["yezheng.pages.dev"]

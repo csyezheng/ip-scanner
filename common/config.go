@@ -2,6 +2,17 @@ package common
 
 import "time"
 
+type Site struct {
+	Name               string
+	IPRangesAPI        string
+	IPRangesFile       string
+	CustomIPRangesFile string
+	IPOutputFile       string
+	WithIPv6           bool
+	HttpsURL           string
+	Domains            []string
+}
+
 type Config struct {
 	General struct {
 		Site         string
@@ -23,22 +34,5 @@ type Config struct {
 		Timeout time.Duration
 		all     bool
 	}
-	Sites struct {
-		Cloudflare struct {
-			IPRangesAPI        string
-			IPRangesFile       string
-			CustomIPRangesFile string
-			IPOutputFile       string
-			WithIPv6           bool
-			HttpsURL           string
-		}
-		GoogleTranslate struct {
-			IPRangesAPI        string
-			IPRangesFile       string
-			CustomIPRangesFile string
-			IPOutputFile       string
-			WithIPv6           bool
-			HttpsURL           string
-		}
-	}
+	Sites []Site
 }

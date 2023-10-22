@@ -37,15 +37,14 @@ func main() {
 		logger := slog.New(handler)
 		slog.SetDefault(logger)
 	}
-
 	switch config.General.Site {
 	case "GoogleTranslate":
-		err := sites.FetchGTIPRanges(config.Sites.GoogleTranslate.IPRangesAPI, config.Sites.GoogleTranslate.IPRangesFile)
+		err := sites.FetchGTIPRanges(&config)
 		if err != nil {
 			slog.Error("error occur %s", err)
 		}
 	case "Cloudflare":
-		err := sites.FetchCFIPRanges(config.Sites.Cloudflare.IPRangesAPI, config.Sites.Cloudflare.IPRangesFile)
+		err := sites.FetchCFIPRanges(&config)
 		if err != nil {
 			slog.Error("error occur %s", err)
 		}

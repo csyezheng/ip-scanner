@@ -2,6 +2,7 @@ package sites
 
 import (
 	"encoding/json"
+	"github.com/csyezheng/ip-scanner/common"
 	"io"
 	"log/slog"
 	"net/http"
@@ -23,7 +24,10 @@ type gtRsponse struct {
 	} `json:"prefixes"`
 }
 
-func FetchGTIPRanges(url string, dest string) error {
+func FetchGTIPRanges(config *common.Config) error {
+	site := common.RetrieveSiteCfg(config)
+	url := site.IPRangesAPI
+	dest := site.IPRangesFile
 	req, err := http.NewRequest("GET", url, nil)
 	req.Header.Add("Content-Type", "application/json")
 	client := &http.Client{}
