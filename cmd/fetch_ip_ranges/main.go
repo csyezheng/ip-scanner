@@ -4,26 +4,17 @@ import (
 	"flag"
 	"fmt"
 	"github.com/csyezheng/ip-scanner/common"
+	"github.com/csyezheng/ip-scanner/sites"
 	"github.com/spf13/viper"
 	"log/slog"
 	"os"
 	"time"
 )
 
-func isFlagPassed(name string) bool {
-	found := false
-	flag.Visit(func(f *flag.Flag) {
-		if f.Name == name {
-			found = true
-		}
-	})
-	return found
-}
-
 func main() {
 	configFilePath := flag.String("config", "./configs/config.toml", "Config file, toml format")
-	usedfor := flag.String("usedfor", "GoogleTranslate",
-		"GoogleTranslate or Cloudflare")
+	siteFlag := flag.String("site", "",
+		"This option should specify the site that exists under Sites configured in config.toml, such as GoogleTranslate, Cloudflare")
 	flag.Parse()
 	viper.SetConfigType("toml")
 	viper.SetConfigFile(*configFilePath)
@@ -36,10 +27,9 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	if isFlagPassed("domain") {
-		config.General.UsedFor = *usedfor
+	if *siteFlag != "" {
+		config.General.Site = *siteFlag
 	}
-
 	config.Ping.Timeout = config.Ping.Timeout * time.Millisecond
 	config.HTTP.Timeout = config.HTTP.Timeout * time.Millisecond
 	if config.General.Debug {
@@ -47,5 +37,17 @@ func main() {
 		logger := slog.New(handler)
 		slog.SetDefault(logger)
 	}
-	common.Start(&config)
+
+	switch config.General.Site {
+	case "GoogleTranslate":
+		err := sites.FetchGTIPRanges(config.Sites.GoogleTranslate.IPRangesAPI, config.Sites.GoogleTranslate.IPRangesFile)
+		if err != nil {
+			slog.Error("error occur %s", err)
+		}
+	case "Cloudflare":
+		err := sites.FetchCFIPRanges(config.Sites.Cloudflare.IPRangesAPI, config.Sites.Cloudflare.IPRangesFile)
+		if err != nil {
+			slog.Error("error occur %s", err)
+		}
+	}
 }

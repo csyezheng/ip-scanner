@@ -1,6 +1,6 @@
 [General]
 # GoogleTranslate or Cloudflare
-UsedFor = "GoogleTranslate"
+Site = "GoogleTranslate"
 # A boolean that turns on/off debug mode. true or false
 Debug = false
 # workers
@@ -32,28 +32,33 @@ Timeout = 2000
 # true: it's legal if it succeeds every time. false: it's legal if it has one succeeds
 all = false
 
-[UsedFor]
+[Sites]
 
-[UsedFor.Cloudflare]
-# All IP ranges of cloudflare
-IPRangesFile = "./data/cloudflare.json"
+[Sites.GoogleTranslate]
+# The API to fetch the IP ranges
+IPRangesAPI = "https://www.gstatic.com/ipranges/goog.json"
+# All IP ranges of google
+IPRangesFile = "./data/all_google_translate_ip_ranges.txt"
 # Customized IP ranges. If the file does not exist, will use IPRangesFile
-CustomIPRangesFile = "./data/cloudflare_custom_ip_ranges.txt"
+CustomIPRangesFile = "./data/custom_google_translate_ip_ranges.txt"
 # Output the available IPs found
-IPOutputFile = "./data/output_cloudflare.txt"
+IPOutputFile = "./data/output_google_translate_ips.txt"
+# # boolean that turns on/off scanning for IPv6. true or false.
+WithIPv6 = false
+# URL for testing HTTPS connection
+HttpsURL = "https://translate.google.com"
+
+[Sites.Cloudflare]
+# The API to fetch the IP ranges
+IPRangesAPI = "https://api.cloudflare.com/client/v4/ips"
+# All IP ranges of cloudflare
+IPRangesFile = "./data/all_cloudflare_ip_ranges.txt"
+# Customized IP ranges. If the file does not exist, will use IPRangesFile
+CustomIPRangesFile = "./data/custom_cloudflare_ip_ranges.txt"
+# Output the available IPs found
+IPOutputFile = "./data/output_cloudflare_ips.txt"
 # A boolean that turns on/off scanning for IPv6. true or false.
 WithIPv6 = false
 # URL for testing HTTPS connection
 HttpsURL = "https://yezheng.pages.dev"
 
-[UsedFor.GoogleTranslate]
-# All IP ranges of google
-IPRangesFile = "./data/goog.json"
-# Customized IP ranges. If the file does not exist, will use IPRangesFile
-CustomIPRangesFile = "./data/google_translate_custom_ip_ranges.txt"
-# Output the available IPs found
-IPOutputFile = "./data/output_google_translate.txt"
-# # boolean that turns on/off scanning for IPv6. true or false.
-WithIPv6 = false
-# URL for testing HTTPS connection
-HttpsURL = "https://translate.google.com"

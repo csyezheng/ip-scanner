@@ -81,12 +81,7 @@ func reqOneIP(destination string, destinationPort uint16, config *Config, record
 		// startTime for calculating the latency/RTT
 		startTime := time.Now()
 
-		switch config.General.UsedFor {
-		case "GoogleTranslate":
-			err = reqTranslate(destination, destinationPort, config)
-		case "Cloudflare":
-			err = reqHEAD(destination, destinationPort, config)
-		}
+		err = reqHEAD(destination, destinationPort, config)
 		//store the time elapsed before processing potential errors
 		latency := time.Since(startTime).Seconds() * 1000
 
@@ -137,7 +132,7 @@ func testOne(ch chan string, config *Config, scanResult *ScanResult, wg *sync.Wa
 	}
 }
 
-func Start(config *Config) {
+func Run(config *Config) {
 	scanResult := new(ScanResult)
 	ips := GetIPs(config)
 	workers := config.General.Workers

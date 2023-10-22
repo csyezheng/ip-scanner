@@ -4,7 +4,7 @@ import "time"
 
 type Config struct {
 	General struct {
-		UsedFor      string
+		Site         string
 		Debug        bool
 		Workers      int
 		ScannedLimit int
@@ -23,8 +23,9 @@ type Config struct {
 		Timeout time.Duration
 		all     bool
 	}
-	UsedFor struct {
+	Sites struct {
 		Cloudflare struct {
+			IPRangesAPI        string
 			IPRangesFile       string
 			CustomIPRangesFile string
 			IPOutputFile       string
@@ -32,6 +33,7 @@ type Config struct {
 			HttpsURL           string
 		}
 		GoogleTranslate struct {
+			IPRangesAPI        string
 			IPRangesFile       string
 			CustomIPRangesFile string
 			IPOutputFile       string

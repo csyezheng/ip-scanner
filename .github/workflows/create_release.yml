@@ -36,5 +36,4 @@ jobs:
         goarch: ${{ matrix.goarch }}
         goversion: "https://go.dev/dl/go1.21.2.linux-amd64.tar.gz"
         project_path: "./cmd"
-        binary_name: "ip-scanner"
         extra_files: LICENSE README.md configs data

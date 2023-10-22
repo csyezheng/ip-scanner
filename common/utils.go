@@ -3,11 +3,11 @@ package common
 import (
 	"bufio"
 	"fmt"
-	"github.com/csyezheng/ip-scanner/usedfor"
 	"io"
 	"log/slog"
 	"net/netip"
 	"os"
+	"reflect"
 	"runtime"
 	"strings"
 	"sync"
@@ -44,31 +44,65 @@ func CIDRToIPs(cidrAddress string, iparr *IPArray, wg *sync.WaitGroup) {
 	}
 }
 
+func extractSiteConfig(config *Config, field string) reflect.Value {
+	sites := reflect.ValueOf(config.Sites)
+	site := sites.FieldByName(config.General.Site)
+	return site.FieldByName(field)
+}
+
+func loadCIDRs(config *Config) ([]string, error) {
+	var cidrs []string
+	customIPRangesFile := extractSiteConfig(config, "CustomIPRangesFile").String()
+	ipRangesFile := extractSiteConfig(config, "IPRangesFile").String()
+	withIPv6 := extractSiteConfig(config, "WithIPv6").Bool()
+	targetFile := customIPRangesFile
+	_, err := os.Stat(targetFile)
+	if err == nil {
+		slog.Info("found custom ip ranges file.")
+	} else if os.IsNotExist(err) {
+		slog.Warn("custom ip ranges file does not exist, use default ip ranges file instead!")
+		targetFile = ipRangesFile
+	} else {
+		slog.Warn("custom ip ranges file %s stat error: %v, use default ip ranges file instead!", customIPRangesFile, err)
+		targetFile = ipRangesFile
+	}
+	_, err = os.Stat(targetFile)
+	if err == nil {
+		slog.Info("found default ip ranges file.")
+		f, err := os.Open(customIPRangesFile)
+		if err != nil {
+			slog.Error("Could not open custom ip address ranges file:", customIPRangesFile)
+			return cidrs, err
+		}
+		defer f.Close()
+		scanner := bufio.NewScanner(f)
+		for scanner.Scan() {
+			line := scanner.Text()
+			if !withIPv6 && !isIPv4(line) {
+				continue
+			}
+			cidrs = append(cidrs, scanner.Text())
+		}
+		if err := scanner.Err(); err != nil {
+			slog.Error("Could not load ip address ranges file:", customIPRangesFile)
+			return cidrs, err
+		}
+	} else if os.IsNotExist(err) {
+		slog.Error("default ip ranges file does not exist!")
+		return cidrs, err
+	} else {
+		slog.Error("default ip ranges file %s stat error: %v", customIPRangesFile, err)
+		return cidrs, err
+	}
+	return cidrs, err
+}
+
 func GetIPs(config *Config) []string {
 	var iparr IPArray
-	var cidrs []string
-	usedFor := config.General.UsedFor
-	if usedFor == "Cloudflare" {
-		var cloudflare usedfor.CloudFlare
-		customIPRangesFile := config.UsedFor.Cloudflare.CustomIPRangesFile
-		ipRangesFile := config.UsedFor.Cloudflare.IPRangesFile
-		withIPv6 := config.UsedFor.Cloudflare.WithIPv6
-		err := cloudflare.LoadCIDRs(customIPRangesFile, ipRangesFile, withIPv6)
-		if err != nil {
-			slog.Error("Loading CIDRs failed:", err)
-		}
-		cidrs = cloudflare.CIDRs
-
-	} else if usedFor == "GoogleTranslate" {
-		var googleTranslate usedfor.GoogleTranslate
-		customIPRangesFile := config.UsedFor.GoogleTranslate.CustomIPRangesFile
-		ipRangesFile := config.UsedFor.GoogleTranslate.IPRangesFile
-		withIPv6 := config.UsedFor.Cloudflare.WithIPv6
-		err := googleTranslate.LoadCIDRs(customIPRangesFile, ipRangesFile, withIPv6)
-		if err != nil {
-			slog.Error("Loading CIDRs failed:", err)
-		}
-		cidrs = googleTranslate.CIDRs
+	cidrs, err := loadCIDRs(config)
+	if err != nil {
+		slog.Error("get ips failed!")
+		return iparr.IPs
 	}
 	var wg sync.WaitGroup
 	for _, cidrAddress := range cidrs {
@@ -81,12 +115,12 @@ func GetIPs(config *Config) []string {
 }
 
 func writeToFile(scanRecords ScanRecordArray, config *Config) {
-	usedFor := config.General.UsedFor
+	usedFor := config.General.Site
 	var outputFile string
 	if usedFor == "Cloudflare" {
-		outputFile = config.UsedFor.Cloudflare.IPOutputFile
+		outputFile = config.Sites.Cloudflare.IPOutputFile
 	} else if usedFor == "GoogleTranslate" {
-		outputFile = config.UsedFor.GoogleTranslate.IPOutputFile
+		outputFile = config.Sites.GoogleTranslate.IPOutputFile
 	}
 	f, err := os.Create(outputFile)
 	if err != nil {
@@ -118,7 +152,7 @@ func printResult(scanRecords ScanRecordArray, config *Config) {
 	for _, record := range head {
 		fmt.Printf("%s\t%s\t%f\t%f\n", record.IP, record.Protocol, record.PingRTT, record.HttpRTT)
 	}
-	if config.General.UsedFor == "GoogleTranslate" {
+	if config.General.Site == "GoogleTranslate" {
 		fastestRecord := *scanRecords[0]
 		slog.Info("The fastest IP has been found:")
 		fmt.Printf("%v\t%s\n", fastestRecord.IP, "translate.googleapis.com")
