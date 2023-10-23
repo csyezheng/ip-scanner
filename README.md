@@ -13,7 +13,7 @@ This script is used to find the fastest IP for a given domain name.
 
 ## Quick start
 
-### Find the IP of the provisioned site
+### Google Translate
 
 Find available IPs for Google Translate:
 
@@ -21,39 +21,35 @@ Find available IPs for Google Translate:
 go run cmd/google_translate/main.go
 ```
 
-Find the fastest IP for cloudflare:
-
 ```
-go run cmd/cloudflare/main.go
+go run cmd/google_translate/main.go -config ./configs/config.toml
 ```
 
-Options:
-```
--config string
-    Config file, toml format (default "./configs/config.toml")
-```
-
-### Fetch the latest IP ranges of provisioned site
-
-Fetch the latest IP ranges of Google Translate:
+Fetch the latest IP ranges of Google Translate, save to the `IPRangesFile` path in the configuration file:
 
 ```
 go run cmd/fetch_ip_ranges/main.go -site GoogleTranslate
 ```
 
-Fetch the latest IP ranges of Cloudflare:
+### Cloudflare
+
+Find the fastest IP for Cloudflare:
+
+```
+go run cmd/cloudflare/main.go
+```
+
+```
+go run cmd/cloudflare/main.go -config ./configs/config.toml
+```
+
+Fetch the latest IP ranges of Cloudflare, save to the `IPRangesFile` path in the configuration file:
 
 ```
 go run cmd/fetch_ip_ranges/main.go -site Cloudflare
 ```
 
-Options:
-
-```
--site string
-```
-
-### Find the IP of custom site
+### Custom site
 
 Find available IPs for other websites, add configuration and run:
 

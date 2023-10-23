@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"io"
+	"log"
 	"log/slog"
 	"net/netip"
 	"os"
@@ -134,7 +135,14 @@ func writeToFile(scanRecords ScanRecordArray, config *Config) {
 
 func printResult(scanRecords ScanRecordArray, config *Config) {
 	if len(scanRecords) == 0 {
-		slog.Info("No found available ip!")
+		site := RetrieveSiteCfg(config)
+		customIPRangesFile := site.CustomIPRangesFile
+		_, err := os.Stat(customIPRangesFile)
+		if err == nil {
+			log.Printf("No available ip found! Please delete the %s file and re-run will scan all IP ranges", customIPRangesFile)
+		} else {
+			slog.Info("No available ip found!")
+		}
 		return
 	}
 	head := scanRecords
@@ -143,7 +151,7 @@ func printResult(scanRecords ScanRecordArray, config *Config) {
 	}
 	fmt.Printf("%s\t%s\t%s\t%s\n", "IP", "Protocol", "PingRTT", "HttpRTT")
 	for _, record := range head {
-		fmt.Printf("%s\t%s\t%f\t%f\n", record.IP, record.Protocol, record.PingRTT, record.HttpRTT)
+		fmt.Printf("%s\t%s\t%.f\t%.f\n", record.IP, record.Protocol, record.PingRTT, record.HttpRTT)
 	}
 	fastestRecord := *scanRecords[0]
 	slog.Info("The fastest IP has been found:")

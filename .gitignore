@@ -23,3 +23,6 @@ go.work
 # output file
 data/output_google_translate_ips.txt
 data/output_cloudflare_ips.txt
+
+.idea/
+dist/

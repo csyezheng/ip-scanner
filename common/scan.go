@@ -17,7 +17,7 @@ func pingOneIP(destination string, destinationPort uint16, config *Config, recor
 		record.IP += fmt.Sprintf(":%d", destinationPort)
 	}
 	successTimes := 0
-	var latencies []float64
+	var latencies []int64
 	for i := 0; i < config.Ping.Count; i += 1 {
 		var err error
 		// startTime for calculating the latency/RTT
@@ -32,7 +32,7 @@ func pingOneIP(destination string, destinationPort uint16, config *Config, recor
 			err = pingUdp(destination, destinationPort, config.Ping.Timeout)
 		}
 		//store the time elapsed before processing potential errors
-		latency := time.Since(startTime).Seconds() * 1000
+		latency := time.Since(startTime).Milliseconds()
 
 		// evaluate potential ping failures
 		if err != nil {
@@ -52,19 +52,20 @@ func pingOneIP(destination string, destinationPort uint16, config *Config, recor
 			// For udp, a timeout indicates that the port *maybe* open.
 			if config.Ping.Protocol == "udp" {
 				successTimes += 1
+				latencies = append(latencies, latency)
 			}
 		default:
 			successTimes += 1
+			latencies = append(latencies, latency)
 		}
-		latencies = append(latencies, latency)
 		// sleep 20 milliseconds between pings to prevent floods
 		time.Sleep(100 * time.Millisecond)
 	}
-	sum := 0.0
+	var sum int64
 	for i := 0; i < len(latencies); i++ {
 		sum += latencies[i]
 	}
-	record.PingRTT = math.Round(sum / float64(len(latencies)))
+	record.PingRTT = math.Round(float64(sum) / float64(len(latencies)))
 	success := false
 	if (config.Ping.all && successTimes == config.Ping.Count) || (!config.Ping.all && successTimes > 0) {
 		success = true
@@ -75,7 +76,7 @@ func pingOneIP(destination string, destinationPort uint16, config *Config, recor
 func reqOneIP(destination string, destinationPort uint16, config *Config, record *ScanRecord) bool {
 	slog.Debug("Start Ping:", "IP", destination)
 	successTimes := 0
-	var latencies []float64
+	var latencies []int64
 	for i := 0; i < config.HTTP.Count; i += 1 {
 		var err error
 		// startTime for calculating the latency/RTT
@@ -83,23 +84,23 @@ func reqOneIP(destination string, destinationPort uint16, config *Config, record
 
 		err = reqHEAD(destination, destinationPort, config)
 		//store the time elapsed before processing potential errors
-		latency := time.Since(startTime).Seconds() * 1000
+		latency := time.Since(startTime).Milliseconds()
 
 		// evaluate potential ping failures
 		if err != nil {
 			latency = 9999999
 		} else {
 			successTimes += 1
+			latencies = append(latencies, latency)
 		}
-		latencies = append(latencies, latency)
 		// sleep 20 milliseconds between request to prevent floods
 		time.Sleep(100 * time.Millisecond)
 	}
-	sum := 0.0
+	var sum int64
 	for i := 0; i < len(latencies); i++ {
 		sum += latencies[i]
 	}
-	record.HttpRTT = math.Round(sum / float64(len(latencies)))
+	record.HttpRTT = math.Round(float64(sum) / float64(len(latencies)))
 	success := false
 	if (config.HTTP.all && successTimes == config.HTTP.Count) || (!config.HTTP.all && successTimes > 0) {
 		success = true

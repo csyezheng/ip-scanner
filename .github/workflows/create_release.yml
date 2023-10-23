@@ -12,7 +12,7 @@ permissions:
     packages: write
     
 jobs:
-  releases-matrix:
+  releases:
     name: Create Release
     runs-on: ubuntu-latest
     strategy:
@@ -28,12 +28,11 @@ jobs:
       with:
         go-version: '1.21.2'
 
-    - name: Create Release
-      uses: wangyoucao577/go-release-action@v1
+    - name: Run GoReleaser
+      uses: goreleaser/goreleaser-action@v5
       with:
-        github_token: ${{ secrets.GITHUB_TOKEN }}
-        goos: ${{ matrix.goos }}
-        goarch: ${{ matrix.goarch }}
-        goversion: "https://go.dev/dl/go1.21.2.linux-amd64.tar.gz"
-        project_path: "./cmd"
-        extra_files: LICENSE README.md configs data
+        distribution: goreleaser
+        version: latest
+        args: release -f .goreleaser.yaml --clean
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
