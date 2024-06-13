@@ -156,11 +156,16 @@ func printResult(scanRecords ScanRecordArray, config *Config) {
 	fastestRecord := *scanRecords[0]
 	slog.Info("The fastest IP has been found:")
 	siteCfg := RetrieveSiteCfg(config)
-	for _, domain := range siteCfg.Domains {
-		fmt.Printf("%v\t%s\n", fastestRecord.IP, domain)
-	}
-	if askForConfirmation() {
-		writeToHosts(fastestRecord.IP, siteCfg.Domains)
+	if len(siteCfg.Domains) > 0 {
+		for _, domain := range siteCfg.Domains {
+			fmt.Printf("%v\t%s\n", fastestRecord.IP, domain)
+		}
+	
+		if askForConfirmation() {
+			writeToHosts(fastestRecord.IP, siteCfg.Domains)
+		}
+	} else {
+		slog.Warn("No domains found in the configuration.")
 	}
 }
 
