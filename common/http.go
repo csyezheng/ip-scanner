@@ -7,12 +7,7 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
-	"strings"
 )
-
-func isIPv4(ip string) bool {
-	return strings.Contains(ip, ".")
-}
 
 func dialContext(destination string, destinationPort uint16) func(ctx context.Context, network, address string) (net.Conn, error) {
 	var addr string

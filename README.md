@@ -1,5 +1,13 @@
 # ip-scanner
 
+[![Go Version](https://img.shields.io/github/go-mod/go-version/sinspired/ip-scanner?logo=go&label=Go)](https://github.com/sinspired/ip-scanner)
+[![Release Version](https://img.shields.io/github/v/release/sinspired/ip-scanner?display_name=tag&logo=github&label=Release)](https://github.com/sinspired/ip-scanner/releases/latest)
+[![GitHub repo size](https://img.shields.io/github/repo-size/sinspired/ip-scanner?logo=github)
+](https://github.com/sinspired/ip-scanner)
+[![GitHub last commit](https://img.shields.io/github/last-commit/sinspired/ip-scanner?logo=github&label=最后提交：)](https://github.com/sinspired/ip-scanner)
+
+[![build and release](https://github.com/sinspired/ip-scanner/actions/workflows/create_release.yml/badge.svg)](https://github.com/sinspired/ip-scanner/actions/workflows/create_release.yml)
+
 This script is used to find the fastest IP for a given domain name.
 
 ## Use
@@ -147,3 +155,4 @@ Domains = ["yezheng.pages.dev"]
 * [ips-v4](https://www.cloudflare.com/ips-v4/)
 * [ips-v6](https://www.cloudflare.com/ips-v6/)
 * [API](https://api.cloudflare.com/client/v4/ips)
+

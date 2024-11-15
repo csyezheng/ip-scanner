@@ -25,4 +25,5 @@ data/output_google_translate_ips.txt
 data/output_cloudflare_ips.txt
 
 .idea/
+.vscode/
 dist/

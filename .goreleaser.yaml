@@ -1,65 +1,63 @@
-# This is an example .goreleaser.yml file with some sensible defaults.
-# Make sure to check the documentation at https://goreleaser.com
-
-# The lines bellow are called `modelines`. See `:help modeline`
-# Feel free to remove those if you don't want/need to use them.
-# yaml-language-server: $schema=https://goreleaser.com/static/schema.json
-# vim: set ts=2 sw=2 tw=0 fo=cnqoj
+# .goreleaser.yaml
+version: 2
+env:
+  - GO111MODULE=on
 
 before:
   hooks:
-    # You may remove this if you don't use go modules.
     - go mod tidy
-    # you may remove this if you don't need go generate
     - go generate ./...
 
+snapshot:
+  version_template: "{{ incpatch .Version }}-next"
+
 builds:
-  - env:
-      - CGO_ENABLED=0
-    goos:
-      - linux
-      - darwin
-      - windows
-    goarch:
-      - amd64
-    dir: ./cmd
-    id: "ip_scanner"
+  - main: ./cmd/ip_scanner
+    id: ip_scanner
     binary: ip_scanner
-    main: ./ip_scanner
-    
+    env:
+      - CGO_ENABLED=0
+    targets:
+      - windows_amd64
+      - linux_amd64
+      - darwin_amd64
+      - darwin_arm64
+
   - main: ./cmd/cloudflare
-    id: "cloudflare"
+    id: cloudflare
     binary: cloudflare
-    goos:
-      - linux
-      - darwin
-      - windows
-    goarch:
-      - amd64
+    env:
+      - CGO_ENABLED=0
+    targets:
+      - windows_amd64
+      - linux_amd64
+      - darwin_amd64
+      - darwin_arm64
 
   - main: ./cmd/fetch_ip_ranges
-    id: "fetch_ip_ranges"
+    id: fetch_ip_ranges
     binary: fetch_ip_ranges
-    goos:
-      - linux
-      - darwin
-      - windows
-    goarch:
-      - amd64
+    env:
+      - CGO_ENABLED=0
+    targets:
+      - windows_amd64
+      - linux_amd64
+      - darwin_amd64
+      - darwin_arm64
 
   - main: ./cmd/google_translate
-    id: "google_translate"
+    id: google_translate
     binary: google_translate
-    goos:
-      - linux
-      - darwin
-      - windows
-    goarch:
-      - amd64
+    env:
+      - CGO_ENABLED=0
+    targets:
+      - windows_amd64
+      - linux_amd64
+      - darwin_amd64
+      - darwin_arm64
 
 archives:
   - format: tar.gz
-    # this name template makes the OS and Arch compatible with the results of `uname`.
     name_template: >-
       {{ .ProjectName }}_
       {{- title .Os }}_
@@ -67,7 +65,6 @@ archives:
       {{- else if eq .Arch "386" }}i386
       {{- else }}{{ .Arch }}{{ end }}
       {{- if .Arm }}v{{ .Arm }}{{ end }}
-    # use zip for windows archives
     format_overrides:
       - goos: windows
         format: zip
@@ -77,9 +74,99 @@ archives:
       - configs/*
       - data/*
 
+checksum:
+  name_template: "checksums.txt"
+
 changelog:
-  sort: asc
+  sort: asc  # 按提交时间升序排序，最早的提交显示在最前面
+  use: github
   filters:
     exclude:
-      - "^docs:"
-      - "^test:"
+      - "^test(:|\\()"
+      - "merge conflict"
+      - "Merge (pull request|remote-tracking branch|branch)"
+      - "go mod tidy"
+      - "^更新文件" 
+      - "^测试(:|\\()"
+
+  groups:
+    # feat(UI): 新增用户登录界面、新增: 实现用户认证功能。
+    - title: "New Features"  # “新功能”
+      regexp: '^.*?(feat|功能|新增|feature)(\(.+\))??!?[-:\s].+$'
+      order: 100 # 排序优先级
+
+
+    # fix: 修复UI组件加载延迟问题
+    - title: "Bug fixes"  # “Bug 修复”
+      regexp: '^.*?(fix|修复|bug|错误|bugfix)(\(.+\))??!?[-:\s].+$'
+      order: 200
+
+    # sec: 修复 XSS 漏洞，增强安全策略。
+    - title: "Security updates"  # “安全更新”
+      regexp: '^.*?(sec|安全|漏洞|security)(\(.+\))??!?[-:\s].+$'
+      order: 300
+
+
+    # deps: 更新依赖库版本，提升稳定性。
+    - title: "Dependency updates"  # “依赖更新”
+      regexp: '^.*?(deps|依赖|dependency)(\(.+\))??!?[-:\s].+$'
+      order: 400
+
+
+    # docs: 更新API使用说明，添加示例代码。
+    - title: "Documentation updates"  # “文档更新”
+      regexp: '^.*?(docs?|文档|说明|documentation|注释)(\(.+\))??!?[-:\s].+$'
+      order: 500
+
+
+    # i18n: 添加西班牙语翻译，完善国际化支持。
+    - title: "Translation updates"  # “翻译更新”
+      regexp: '^.*?(i18n|翻译|localization|国际化|本地化)(\(.+\))??!?[-:\s].+$'
+      order: 600
+
+
+    # optimization: 优化用户登录流程，减少加载时间。
+    - title: "Code Optimization"  # “代码优化”
+      regexp: '^.*?(optimization|优化|性能|代码|performance|refactor)(\(.+\))??!?[-:\s].+$'
+      order: 700
+
+
+    # config: 更新环境变量配置文件。
+    - title: "Config updates"  # “配置更新”
+      regexp: '^.*?(config|配置|configuration)(\(.+\))??!?[-:\s].+$'
+      order: 800
+
+
+    # ci(build): 添加持续集成任务，自动构建和发布。
+    - title: "Build process updates"  # “构建过程更新”
+      regexp: '^.*?(build|ci|构建|持续集成)(\(.+\))??!?[-:\s].+$'
+      order: 900
+
+
+    # test: 增加单元测试用例，覆盖率提升到 85%。
+    - title: "Test-related changes"  # “测试相关变更”
+      regexp: '^.*?(test|测试|单元测试|集成测试)(\(.+\))??!?[-:\s].+$'
+      order: 950
+
+
+    # chore: 更新项目文档索引，整理文件结构。
+    - title: "Other work"  # “其他工作”
+      order: 9999
+
+
+release:
+  name_template: "v{{ .Version }} {{.TagSubject}}"
+
+  replace_existing_artifacts: true
+  mode: replace
+
+  header: |
+    
+    **Latest Update:**
+
+    > {{.TagContents}}
+    
+    Released in {{ .CommitDate }}
+
+  footer: |
+    **Full Changelog**: https://github.com/sinspired/ip-scanner/compare/{{ .PreviousTag }}...{{ if .IsNightly }}nightly{{ else }}{{ .Tag }}{{ end }}
